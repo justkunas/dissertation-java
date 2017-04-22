@@ -4,7 +4,6 @@ import java.io.IOException;
 import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.Scanner;
 
 import org.apache.lucene.analysis.standard.StandardAnalyzer;
 import org.apache.lucene.document.Document;
@@ -24,6 +23,8 @@ public class Main {
 	private static String indexLocation;
 
 	static int i = 0;
+	static String clipboard = "";
+	static int count = 0;
 
 	public static void main(String[] args) throws IOException, ParseException {
 		try {
@@ -31,8 +32,6 @@ public class Main {
 			indexLocation = "C:\\Users\\Justkunas\\Documents\\Projects\\Index\\" + json.getString("path");
 			// *
 			String arg = json.getString("query");
-
-			Scanner pause = new Scanner(System.in);
 
 			String workingJson = json.get("filters").toString();
 			JSONObject filterObj = new JSONObject(workingJson);
@@ -42,15 +41,19 @@ public class Main {
 			// *
 			StandardAnalyzer analyser = new StandardAnalyzer();
 			IndexReader reader = DirectoryReader.open(FSDirectory.open(Paths.get(indexLocation)));
-			IndexSearcher search = new IndexSearcher(reader);
-			TopScoreDocCollector collector = TopScoreDocCollector.create(2781403);
+			
 
 			try {
 				String filters = generateFilterText(filterObj);
 				for (String bookQuery : generateQueries(arg)) {
+					
+					IndexSearcher search = new IndexSearcher(reader);
+					TopScoreDocCollector collector = TopScoreDocCollector.create(2781403);
+					
 					QueryParser parser;
 					String subXML = bookQuery.split("/:/g")[0];
 					String fullQuery = bookQuery + filters;
+					
 					switch (subXML) {
 					case "place":
 						parser = new QueryParser("places", analyser);
@@ -96,8 +99,11 @@ public class Main {
 					parser.setAllowLeadingWildcard(true);
 					try {
 						Query query = parser.parse(fullQuery);
+						//System.out.println(fullQuery);
 						// pause.nextLine();
+						//System.out.println("Searching");
 						search.search(query, collector);
+						//System.out.println("Searched");
 						ScoreDoc[] results = collector.topDocs().scoreDocs;
 
 						for (ScoreDoc scoreDoc : results) {
@@ -114,17 +120,22 @@ public class Main {
 				}
 			} catch (Exception err) {
 				err.printStackTrace();
-			} finally {
-				pause.close();
 			}
 			//*
 			scores.forEach((key, value) -> {
-				System.out.println(key);
+				count++;
+				System.out.println(key);// + " - " + count + "/" + scores.size() + " - " + (int)(((double)count/(double)scores.size())*100) + "%" );
 			});
+			
 			//*/
 		} catch (Exception error) {
 			error.printStackTrace();
 		}finally {
+			try {
+				Thread.sleep(1000);
+			} catch (InterruptedException e) {
+				e.printStackTrace();
+			}
 			System.exit(0);
 		}
 
@@ -136,6 +147,7 @@ public class Main {
 
 		String returnValue = "";
 
+		/*
 		JSONObject listprice = new JSONObject(filters.get("listprice").toString());
 		JSONObject numberofpages = new JSONObject(filters.get("numberofpages").toString());
 
@@ -143,17 +155,18 @@ public class Main {
 			returnValue += " AND listprice:[" + listprice.getInt("min") + " TO " + listprice.getInt("max") + "]";
 
 		if (numberofpages.getBoolean("enabled"))
-			returnValue += " AND numberofpages:[" + numberofpages.getInt("min") + " TO " + numberofpages.getInt("max")
-					+ "]";
+			returnValue += " AND numberofpages:[" + numberofpages.getInt("min") + " TO " + numberofpages.getInt("max")+ "]";
 
+		//*/
+		
 		return returnValue;
 	}
 
 	public static String[] generateQueries(String query) {
 
 		ArrayList<String> criteria = new ArrayList<String>();
-
-		// *
+		
+		//*
 		criteria.add("isbn:\"" + query + "\"^8");
 		criteria.add("ean:\"" + query + "\"^8");
 		criteria.add("dewey:\"" + query + "\"^8");
@@ -171,18 +184,19 @@ public class Main {
 		criteria.add("firstwordsitem:\"" + query + "\"^4");
 		criteria.add("lastwordsitem:\"" + query + "\"^4");
 		criteria.add("epigraph:\"" + query + "\"^4");
-
-		// */
+		
 		criteria.add("manufacturer:\"" + query + "\"^3");
 		criteria.add("publisher:\"" + query + "\"^3");
-		// *
+
+		//*/
 		criteria.add("label:\"" + query + "\"^2");
+		//*
 		criteria.add("readinglevel:\"" + query + "\"^2");
 		criteria.add("studio:\"" + query + "\"^2");
 		criteria.add("quotation:\"" + query + "\"^2");
 
 		criteria.add("binding:\"" + query + "\"");
-		// */
+		//*/
 
 		return criteria.toArray(new String[0]);
 	}
