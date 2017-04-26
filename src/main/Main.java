@@ -31,7 +31,7 @@ public class Main {
 			JSONObject json = new JSONObject(args[0]);
 			indexLocation = "C:\\Users\\Justkunas\\Documents\\Projects\\Index\\" + json.getString("path");
 			// *
-			String arg = json.getString("query");
+			String arg = json.get("query").toString();
 
 			String workingJson = json.get("filters").toString();
 			JSONObject filterObj = new JSONObject(workingJson);
